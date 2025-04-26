@@ -29,14 +29,14 @@ const RestRegister = ({ className, ...rest }) => {
                 onSubmit={async (values, { setErrors, setStatus, setSubmitting }) => {
                     try {
                         axios
-                            .post(API_SERVER + 'users/register', {
+                            .post(API_SERVER + 'auth/register', {
                                 username: values.username,
                                 password: values.password,
                                 email: values.email
                             })
                             .then(function (response) {
                                 if (response.data.success) {
-                                    history.push('/auth/signin');
+                                    history.push('/auth/login');
                                 } else {
                                     setStatus({ success: false });
                                     setErrors({ submit: response.data.msg });

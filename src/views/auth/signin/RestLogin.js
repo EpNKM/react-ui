@@ -25,45 +25,55 @@ const RestLogin = ({ className, ...rest }) => {
                     email: Yup.string().email('Нужен действительный адрес почты').max(255).required('Требуется электронная почта'),
                     password: Yup.string().max(255).required('Требуется пароль')
                 })}
-                onSubmit={async (values, { setErrors, setStatus, setSubmitting }) => {
-                    try {
-                        axios
-                            .post(API_SERVER + 'auth/login', {
-                                password: values.password,
-                                email: values.email
-                            })
-                            .then(function (response) {
-                                if (response.data.success) {
-                                    console.log(response.data);
-                                    dispatcher({
-                                        type: ACCOUNT_INITIALIZE,
-                                        payload: { isLoggedIn: true, user: response.data.user, token: response.data.token }
-                                    });
-                                    if (scriptedRef.current) {
-                                        setStatus({ success: true });
-                                        setSubmitting(false);
-                                    }
-                                } else {
-                                    setStatus({ success: false });
-                                    setErrors({ submit: response.data.msg });
-                                    setSubmitting(false);
-                                }
-                            })
-                            .catch(function (error) {
-                                console.log(error);
-                                setStatus({ success: false });
-                                setErrors({ submit: error.response.data.msg });
-                                setSubmitting(false);
-                            });
-                    } catch (err) {
-                        console.error(err);
-                        if (scriptedRef.current) {
-                            setStatus({ success: false });
-                            setErrors({ submit: err.message });
-                            setSubmitting(false);
-                        }
+              onSubmit={async (values, { setErrors, setStatus, setSubmitting }) => {
+    try {
+        await axios
+            .post(API_SERVER + 'api/auth/login', {
+                password: values.password,
+                email: values.email
+            }, {
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                }
+            })
+            .then(function (response) {
+                if (response.data.isSuccess) {
+                    const userData = {
+                        isLoggedIn: true,
+                        user: {
+                            // Убедитесь, что передаете только простые данные
+                            id: response.data.data.user.id,
+                            email: response.data.data.user.email,
+                            name: response.data.data.user.name,
+                            // ... другие сериализуемые свойства
+                        },
+                        token: response.data.data.token
+                    };
+
+                    dispatcher({
+                        type: ACCOUNT_INITIALIZE,
+                        payload: userData
+                    });
+                    
+                    if (scriptedRef.current) {
+                        setStatus({ success: true });
+                        setSubmitting(false);
                     }
-                }}
+                } else {
+                    setStatus({ success: false });
+                    setErrors({ 
+                        submit: response.data.message || 
+                               'Authentication failed. Please try again.' 
+                    });
+                    setSubmitting(false);
+                }
+            })
+            // ... остальная часть обработки ошибок
+    } catch (err) {
+        // ... обработка ошибок
+    }
+}}
             >
                 {({ errors, handleBlur, handleChange, handleSubmit, isSubmitting, touched, values }) => (
                     <form noValidate onSubmit={handleSubmit} className={className} {...rest}>
