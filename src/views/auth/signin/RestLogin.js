@@ -27,53 +27,39 @@ const RestLogin = ({ className, ...rest }) => {
                 })}
               onSubmit={async (values, { setErrors, setStatus, setSubmitting }) => {
     try {
-        await axios
-            .post(API_SERVER + 'auth/login', {
-                password: values.password,
-                email: values.email
-            }, {
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Accept': 'application/json'
-                }
-            })
-            .then(function (response) {
-                if (response.data.isSuccess) {
-                    const userData = {
-                        isLoggedIn: true,
-                        user: {
-                            // Убедитесь, что передаете только простые данные
-                            id: response.data.data.user.id,
-                            email: response.data.data.user.email,
-                            name: response.data.data.user.name,
-                            // ... другие сериализуемые свойства
-                        },
-                        token: response.data.data.token
-                    };
+        const response = await axios.post(API_SERVER + 'auth/login', {
+            username: values.email,
+            passwordHash: values.password
+        }, {
+            headers: { 'Content-Type': 'application/json' }
+        });
 
-                    dispatcher({
-                        type: ACCOUNT_INITIALIZE,
-                        payload: userData
-                    });
-                    
-                    if (scriptedRef.current) {
-                        setStatus({ success: true });
-                        setSubmitting(false);
-                    }
-                } else {
-                    setStatus({ success: false });
-                    setErrors({ 
-                        submit: response.data.message || 
-                               'Authentication failed. Please try again.' 
-                    });
-                    setSubmitting(false);
-                }
-            })
-            // ... остальная часть обработки ошибок
+        if (response.data.isSuccess) {
+            const userData = {
+                isLoggedIn: true,
+                user: {
+                    id: response.data.data.user.id,
+                    email: values.email, // Используем email из формы
+                    name: response.data.data.user.name
+                },
+                token: response.data.data.token
+            };
+            
+            dispatcher({ type: ACCOUNT_INITIALIZE, payload: userData });
+            setStatus({ success: true });
+        } else {
+            setErrors({ submit: response.data.message || 'Ошибка входа' });
+        }
     } catch (err) {
-        // ... обработка ошибок
+        setErrors({ submit: 
+            err.response?.data?.message || 
+            'Сервер не отвечает. Проверьте подключение.'
+        });
+    } finally {
+        setSubmitting(false);
     }
 }}
+
             >
                 {({ errors, handleBlur, handleChange, handleSubmit, isSubmitting, touched, values }) => (
                     <form noValidate onSubmit={handleSubmit} className={className} {...rest}>
