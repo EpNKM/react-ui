@@ -28,7 +28,7 @@ const RestLogin = ({ className, ...rest }) => {
               onSubmit={async (values, { setErrors, setStatus, setSubmitting }) => {
     try {
         await axios
-            .post(API_SERVER + 'api/auth/login', {
+            .post(API_SERVER + 'auth/login', {
                 password: values.password,
                 email: values.email
             }, {

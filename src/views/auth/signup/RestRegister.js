@@ -36,7 +36,7 @@ const RestRegister = ({ className, ...rest }) => {
                             })
                             .then(function (response) {
                                 if (response.data.success) {
-                                    history.push('/auth/login');
+                                    history.push('auth/login');
                                 } else {
                                     setStatus({ success: false });
                                     setErrors({ submit: response.data.msg });
