@@ -1,6 +1,6 @@
 import React from 'react';
 import { useDispatch } from 'react-redux';
-import { useNavigate } from 'react-router-dom';
+import { useHistory } from 'react-router-dom';
 import { Row, Col, Button, Alert } from 'react-bootstrap';
 
 import * as Yup from 'yup';
@@ -13,13 +13,13 @@ import { ACCOUNT_INITIALIZE } from './../../../store/actions';
 const RestLogin = ({ className, ...rest }) => {
     const dispatch = useDispatch();
     const scriptedRef = useScriptRef();
-    const navigate = useNavigate();
+    const history = useHistory();
 
     return (
         <React.Fragment>
             <Formik
                 initialValues={{
-                    username: '', // Изменено с email на username
+                    username: '',
                     password: '',
                     submit: null
                 }}
@@ -30,8 +30,8 @@ const RestLogin = ({ className, ...rest }) => {
                 onSubmit={async (values, { setErrors, setStatus, setSubmitting }) => {
                     try {
                         const response = await axios.post(`${API_SERVER}auth/login`, {
-                            Username: values.username, // Соответствует ожиданиям API
-                            PasswordHash: values.password // Соответствует ожиданиям API
+                            Username: values.username,
+                            PasswordHash: values.password
                         }, {
                             headers: {
                                 'Content-Type': 'application/json',
@@ -43,7 +43,7 @@ const RestLogin = ({ className, ...rest }) => {
                             const userData = {
                                 isLoggedIn: true,
                                 user: {
-                                    username: values.username // Минимальные данные пользователя
+                                    username: values.username
                                 },
                                 token: response.data.token
                             };
@@ -58,7 +58,7 @@ const RestLogin = ({ className, ...rest }) => {
                             if (scriptedRef.current) {
                                 setStatus({ success: true });
                                 setSubmitting(false);
-                                navigate('/dashboard'); // Использование useNavigate
+                                history.push('/dashboard'); // Используем history.push вместо navigate
                             }
                         } else {
                             throw new Error('Отсутствует токен в ответе');
