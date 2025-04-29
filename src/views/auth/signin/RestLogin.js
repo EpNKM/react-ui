@@ -1,119 +1,140 @@
 import React from 'react';
 import { useDispatch } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
-import { Formik } from 'formik';
-import * as Yup from 'yup';
-import axios from 'axios';
-import { Button, Alert, Row, Col } from 'react-bootstrap';
-import { API_SERVER } from '../../../config/constant';
-import { ACCOUNT_INITIALIZE } from '../../../store/actions';
+import { Row, Col, Button, Alert } from 'react-bootstrap';
 
-const RestLogin = ({ className }) => {
+import * as Yup from 'yup';
+import { Formik } from 'formik';
+import axios from 'axios';
+import useScriptRef from '../../../hooks/useScriptRef';
+import { API_SERVER } from './../../../config/constant';
+import { ACCOUNT_INITIALIZE } from './../../../store/actions';
+
+const RestLogin = ({ className, ...rest }) => {
     const dispatch = useDispatch();
+    const scriptedRef = useScriptRef();
     const navigate = useNavigate();
 
     return (
-        <Formik
-            initialValues={{ username: '', password: '', submit: null }}
-            validationSchema={Yup.object().shape({
-                username: Yup.string().required('Требуется имя пользователя'),
-                password: Yup.string().required('Требуется пароль')
-            })}
-            onSubmit={async (values, { setErrors, setSubmitting }) => {
-                try {
-                    const response = await axios.post(`${API_SERVER}auth/login`, {
-                        Username: values.username,
-                        PasswordHash: values.password
-                    }, {
-                        headers: { 'Content-Type': 'application/json' }
-                    });
+        <React.Fragment>
+            <Formik
+                initialValues={{
+                    username: '', // Изменено с email на username
+                    password: '',
+                    submit: null
+                }}
+                validationSchema={Yup.object().shape({
+                    username: Yup.string().required('Требуется имя пользователя'),
+                    password: Yup.string().required('Требуется пароль')
+                })}
+                onSubmit={async (values, { setErrors, setStatus, setSubmitting }) => {
+                    try {
+                        const response = await axios.post(`${API_SERVER}auth/login`, {
+                            Username: values.username, // Соответствует ожиданиям API
+                            PasswordHash: values.password // Соответствует ожиданиям API
+                        }, {
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Accept': 'application/json'
+                            }
+                        });
 
-                    if (response.data.token) {
-                        // Сохраняем токен
-                        localStorage.setItem('authToken', response.data.token);
-                        
-                        // Устанавливаем данные пользователя (минимальный набор)
-                        const userData = {
-                            isLoggedIn: true,
-                            user: {
-                                username: values.username
-                            },
-                            token: response.data.token
-                        };
+                        if (response.data.token) {
+                            const userData = {
+                                isLoggedIn: true,
+                                user: {
+                                    username: values.username // Минимальные данные пользователя
+                                },
+                                token: response.data.token
+                            };
 
-                        dispatch({ type: ACCOUNT_INITIALIZE, payload: userData });
-                        navigate('/dashboard');
-                    }
-                } catch (error) {
-                    console.error('Login error:', error);
-                    setSubmitting(false);
-                    
-                    if (error.response) {
-                        // Ошибка от сервера
-                        if (error.response.status === 401) {
-                            setErrors({ submit: 'Неверное имя пользователя или пароль' });
+                            dispatch({
+                                type: ACCOUNT_INITIALIZE,
+                                payload: userData
+                            });
+
+                            localStorage.setItem('authToken', response.data.token);
+                            
+                            if (scriptedRef.current) {
+                                setStatus({ success: true });
+                                setSubmitting(false);
+                                navigate('/dashboard'); // Использование useNavigate
+                            }
                         } else {
-                            setErrors({ submit: error.response.data.message || 'Ошибка сервера' });
+                            throw new Error('Отсутствует токен в ответе');
                         }
-                    } else {
-                        setErrors({ submit: 'Не удалось подключиться к серверу' });
+                    } catch (err) {
+                        let errorMessage = 'Ошибка при входе';
+                        
+                        if (err.response) {
+                            errorMessage = err.response.data?.message || 
+                                         err.response.statusText || 
+                                         `Ошибка ${err.response.status}`;
+                        } else if (err.request) {
+                            errorMessage = 'Сервер не отвечает. Проверьте подключение.';
+                        }
+                        
+                        setErrors({ submit: errorMessage });
+                        setSubmitting(false);
                     }
-                }
-            }}
-        >
-            {({ errors, handleBlur, handleChange, handleSubmit, isSubmitting, touched, values }) => (
-                <form noValidate onSubmit={handleSubmit} className={className}>
-                    <div className="form-group mb-3">
-                        <input
-                            type="text"
-                            name="username"
-                            value={values.username}
-                            onChange={handleChange}
-                            onBlur={handleBlur}
-                            className={`form-control ${touched.username && errors.username ? 'is-invalid' : ''}`}
-                            placeholder="Имя пользователя"
-                        />
-                        {touched.username && errors.username && (
-                            <div className="invalid-feedback">{errors.username}</div>
+                }}
+            >
+                {({ errors, handleBlur, handleChange, handleSubmit, isSubmitting, touched, values }) => (
+                    <form noValidate onSubmit={handleSubmit} className={className} {...rest}>
+                        <div className="form-group mb-3">
+                            <input
+                                className={`form-control ${touched.username && errors.username ? 'is-invalid' : ''}`}
+                                placeholder="Имя пользователя"
+                                name="username"
+                                onBlur={handleBlur}
+                                onChange={handleChange}
+                                type="text"
+                                value={values.username}
+                            />
+                            {touched.username && errors.username && (
+                                <small className="text-danger form-text">{errors.username}</small>
+                            )}
+                        </div>
+
+                        <div className="form-group mb-4">
+                            <input
+                                className={`form-control ${touched.password && errors.password ? 'is-invalid' : ''}`}
+                                placeholder="Пароль"
+                                name="password"
+                                onBlur={handleBlur}
+                                onChange={handleChange}
+                                type="password"
+                                value={values.password}
+                            />
+                            {touched.password && errors.password && (
+                                <small className="text-danger form-text">{errors.password}</small>
+                            )}
+                        </div>
+
+                        {errors.submit && (
+                            <Col sm={12}>
+                                <Alert variant="danger">{errors.submit}</Alert>
+                            </Col>
                         )}
-                    </div>
 
-                    <div className="form-group mb-4">
-                        <input
-                            type="password"
-                            name="password"
-                            value={values.password}
-                            onChange={handleChange}
-                            onBlur={handleBlur}
-                            className={`form-control ${touched.password && errors.password ? 'is-invalid' : ''}`}
-                            placeholder="Пароль"
-                        />
-                        {touched.password && errors.password && (
-                            <div className="invalid-feedback">{errors.password}</div>
-                        )}
-                    </div>
-
-                    {errors.submit && (
-                        <Alert variant="danger" className="mb-4">
-                            {errors.submit}
-                        </Alert>
-                    )}
-
-                    <Row>
-                        <Col>
-                            <Button
-                                type="submit"
-                                variant="primary"
-                                disabled={isSubmitting}
-                                block
-                            >
-                                {isSubmitting ? 'Вход...' : 'Войти'}
-                            </Button>
-                        </Col>
-                    </Row>
-                </form>
-            )}
-        </Formik>
+                        <Row>
+                            <Col mt={2}>
+                                <Button
+                                    className="btn-block"
+                                    disabled={isSubmitting}
+                                    size="lg"
+                                    type="submit"
+                                    variant="primary"
+                                >
+                                    {isSubmitting ? 'Вход...' : 'Войти'}
+                                </Button>
+                            </Col>
+                        </Row>
+                    </form>
+                )}
+            </Formik>
+            <hr />
+        </React.Fragment>
     );
 };
 
