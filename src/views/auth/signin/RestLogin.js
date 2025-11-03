@@ -58,7 +58,7 @@ const RestLogin = ({ className, ...rest }) => {
                             if (scriptedRef.current) {
                                 setStatus({ success: true });
                                 setSubmitting(false);
-                                history.push('/dashboard'); // Используем history.push вместо navigate
+                                history.push('/dashboard'); 
                             }
                         } else {
                             throw new Error('Отсутствует токен в ответе');
