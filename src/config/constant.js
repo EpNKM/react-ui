@@ -1,9 +1,6 @@
 let BACKEND_SERVER = null;
-if (process.env.REACT_APP_BACKEND_SERVER) {
-  BACKEND_SERVER = process.env.REACT_APP_BACKEND_SERVER;
-} else {
+
   BACKEND_SERVER = "https://fingram-api.onrender.com/api/";
-}
 
 export const BASENAME = ''; // don't add '/' at end off BASENAME
 export const BASE_URL = '/app/dashboard/default';
