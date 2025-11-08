@@ -2,7 +2,6 @@ import React from 'react';
 import { useDispatch } from 'react-redux';
 import { useHistory } from 'react-router-dom';
 import { Row, Col, Button, Alert } from 'react-bootstrap';
-
 import * as Yup from 'yup';
 import { Formik } from 'formik';
 import axios from 'axios';
@@ -19,19 +18,19 @@ const RestLogin = ({ className, ...rest }) => {
         <React.Fragment>
             <Formik
                 initialValues={{
-                    username: '',
+                    email: '',
                     password: '',
                     submit: null
                 }}
                 validationSchema={Yup.object().shape({
-                    username: Yup.string().required('Требуется имя пользователя'),
+                    email: Yup.string().email('Нужен действительный адрес почты').max(255).required('Требуется электронная почта'),
                     password: Yup.string().required('Требуется пароль')
                 })}
                 onSubmit={async (values, { setErrors, setStatus, setSubmitting }) => {
                     try {
-                        const response = await axios.post(`${API_SERVER}auth/login`, {
-                            Username: values.username,
-                            PasswordHash: values.password
+                        const response = await axios.post(`${API_SERVER}/api/auth/login`, {
+                            email: values.email,
+                            password: values.password
                         }, {
                             headers: {
                                 'Content-Type': 'application/json',
@@ -43,16 +42,13 @@ const RestLogin = ({ className, ...rest }) => {
                             const userData = {
                                 isLoggedIn: true,
                                 user: {
-                                    username: values.username
+                                    email: values.email,
+                                    username: response.data.user?.username || values.email.split('@')[0]
                                 },
                                 token: response.data.token
                             };
 
-                            dispatch({
-                                type: ACCOUNT_INITIALIZE,
-                                payload: userData
-                            });
-
+                            dispatch({ type: ACCOUNT_INITIALIZE, payload: userData });
                             localStorage.setItem('authToken', response.data.token);
                             
                             if (scriptedRef.current) {
@@ -65,15 +61,14 @@ const RestLogin = ({ className, ...rest }) => {
                         }
                     } catch (err) {
                         let errorMessage = 'Ошибка при входе';
-                        
                         if (err.response) {
                             errorMessage = err.response.data?.message || 
+                                         err.response.data ||
                                          err.response.statusText || 
                                          `Ошибка ${err.response.status}`;
                         } else if (err.request) {
                             errorMessage = 'Сервер не отвечает. Проверьте подключение.';
                         }
-                        
                         setErrors({ submit: errorMessage });
                         setSubmitting(false);
                     }
@@ -81,30 +76,32 @@ const RestLogin = ({ className, ...rest }) => {
             >
                 {({ errors, handleBlur, handleChange, handleSubmit, isSubmitting, touched, values }) => (
                     <form noValidate onSubmit={handleSubmit} className={className} {...rest}>
+                        {/* Email */}
                         <div className="form-group mb-3">
                             <input
-                                className={`form-control ${touched.username && errors.username ? 'is-invalid' : ''}`}
-                                placeholder="Имя пользователя"
-                                name="username"
+                                className={`form-control ${touched.email && errors.email ? 'is-invalid' : ''}`}
+                                placeholder="Электронная почта"
+                                name="email"
+                                type="email"
+                                value={values.email}
                                 onBlur={handleBlur}
                                 onChange={handleChange}
-                                type="text"
-                                value={values.username}
                             />
-                            {touched.username && errors.username && (
-                                <small className="text-danger form-text">{errors.username}</small>
+                            {touched.email && errors.email && (
+                                <small className="text-danger form-text">{errors.email}</small>
                             )}
                         </div>
 
+                        {/* Password */}
                         <div className="form-group mb-4">
                             <input
                                 className={`form-control ${touched.password && errors.password ? 'is-invalid' : ''}`}
                                 placeholder="Пароль"
                                 name="password"
-                                onBlur={handleBlur}
-                                onChange={handleChange}
                                 type="password"
                                 value={values.password}
+                                onBlur={handleBlur}
+                                onChange={handleChange}
                             />
                             {touched.password && errors.password && (
                                 <small className="text-danger form-text">{errors.password}</small>
